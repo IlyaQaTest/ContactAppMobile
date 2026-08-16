@@ -71,25 +71,25 @@ public class LoginTests extends TestBase {
         Assert.assertTrue(isLoaded, "Contact List screen should be displayed after login");
     }
 
-//    @Test(enabled = false, description = "Positive test: Verify '+' button is visible after login")
-//    @Step("Login and check if '+' button is present on contact list screen")
-//    public void loginPositiveBtnPlusTest() {
-//        logger.info("Starting test: loginPositiveBtnPlusTest");
-//
-//        User user = new User(
-//                getProperty("base.properties", "login"),
-//                getProperty("base.properties", "password")
-//        );
-//
-//        loginRegistrationScreen.typeLoginRegistrationForm(user);
-//        loginRegistrationScreen.clickBtnLogin();
-//
-//        contactListScreen = new ContactListScreen(driver);
-//
-//        Assert.assertTrue(contactListScreen.isBtnPlusPresent(),
-//                "Plus button should be visible after login");
-//    }
-//
+    @Test(enabled = true, description = "Positive test: Verify '+' button is visible after login")
+    @Step("Login and check if '+' button is present on contact list screen")
+    public void loginPositiveBtnPlusTest() {
+        logger.info("Starting test: loginPositiveBtnPlusTest");
+
+        User user = new User(
+                getProperty("base.properties", "login"),
+                getProperty("base.properties", "password")
+        );
+
+        loginRegistrationScreen.typeLoginRegistrationForm(user);
+        loginRegistrationScreen.clickBtnLogin();
+
+        contactListScreen = new ContactListScreen(driver);
+
+        Assert.assertTrue(contactListScreen.isBtnPlusPresent(),
+                "Plus button should be visible after login");
+    }
+
 //    @Test(enabled = false, description = "Negative test: Empty password")
 //    @Step("Attempt login with empty password and verify error message")
 //    public void loginNegativeEmptyPasswordTest() {
