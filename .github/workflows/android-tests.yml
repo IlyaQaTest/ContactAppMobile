@@ -14,12 +14,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Даем права на аппаратное ускорение (KVM)
+      # Даем права на аппаратное ускорение (KVM) — не фатально
       - name: Enable KVM group perms
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
+          sudo udevadm control --reload-rules || true
+          sudo udevadm trigger --name-match=kvm || true
+        # Не делаем фейл раннера при проблемах с udev/KVM
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -32,25 +33,35 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Appium
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/gradle-wrapper.properties') }}
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Appium CLI
         run: |
           npm install -g appium
           appium -v
 
       - name: Install UiAutomator2 driver
         run: |
-          appium driver install uiautomator2
-
-      - name: Start Appium server
-        run: |
-          nohup appium --log-level info > appium.log 2>&1 &
-          sleep 5
-          cat appium.log
+          appium driver install uiautomator2 || true
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      # Запуск эмулятора + ожидание загрузки + запуск тестов
+      # Запуск эмулятора + ожидание загрузки + запуск Appium и тестов
       - name: Run Android emulator and tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -62,13 +73,14 @@ jobs:
           disable-animations: true
           emulator-options: "-no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none"
           script: |
-            ADB=/usr/local/lib/android/sdk/platform-tools/adb
+            # Удобные переменные
+            ADB="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}/platform-tools/adb"
             EMU=emulator-5554
             TIMEOUT=300
 
             echo "Restarting adb..."
             $ADB kill-server || true
-            $ADB start-server
+            $ADB start-server || true
 
             echo "Waiting for $EMU to appear as 'device'..."
             elapsed=0
@@ -94,14 +106,34 @@ jobs:
 
             echo "Emulator is ready."
 
-            ./gradlew test --info
+            # Start Appium and wait for readiness
+            echo "Starting Appium..."
+            nohup appium --log-level info > appium.log 2>&1 &
+            APPIUM_WAIT=30
+            elapsed=0
+            until curl -s http://127.0.0.1:4723/wd/hub/status 2>/dev/null | grep -E '"ready":true|"status":0' >/dev/null 2>&1; do
+              sleep 2
+              elapsed=$((elapsed+2))
+              if [ $elapsed -gt $APPIUM_WAIT ]; then
+                echo "Appium not ready after ${APPIUM_WAIT}s"
+                echo "---- appium.log ----"
+                cat appium.log || true
+                exit 1
+              fi
+            done
+            echo "Appium is ready."
+            echo "---- appium.log (head) ----"
+            head -n 200 appium.log || true
+
+            # Запускаем инструментальные тесты (connectedAndroidTest) — подходит для UI/Instrumentation тестов
+            ./gradlew connectedAndroidTest --no-daemon --info
 
       # Сохранение логов и скриншота при падении
       - name: Save device logs and screenshot
         if: failure()
         run: |
           mkdir -p artifacts
-          ADB=/usr/local/lib/android/sdk/platform-tools/adb
+          ADB="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}/platform-tools/adb"
           EMU=emulator-5554
 
           echo "Collecting logcat..."
@@ -109,6 +141,9 @@ jobs:
 
           echo "Collecting device screenshot..."
           $ADB -s $EMU exec-out screencap -p > artifacts/screenshot.png || true
+
+          echo "Collecting Appium log..."
+          cp appium.log artifacts/appium.log || true
 
       - name: Upload Android artifacts
         if: failure()
