@@ -8,14 +8,13 @@ on:
 
 jobs:
   test:
-    # 1. Используем 22.04 во избежание багов с путями эмулятора
     runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. ВАЖНО: Даем права на аппаратное ускорение (KVM)
+      # Даем права на аппаратное ускорение (KVM)
       - name: Enable KVM group perms
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -42,7 +41,6 @@ jobs:
         run: |
           appium driver install uiautomator2
 
-      # 3. Перенаправляем логи в файл и даем серверу 5 секунд на запуск
       - name: Start Appium server
         run: |
           nohup appium --log-level info > appium.log 2>&1 &
@@ -52,16 +50,69 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      # Запуск эмулятора + ожидание загрузки + запуск тестов
       - name: Run Android emulator and tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 30
           target: google_apis
           arch: x86_64
-          # 4. Используем базовый профиль
           profile: pixel
           force-avd-creation: true
           disable-animations: true
-          # Добавлены параметры отключения камер для экономии оперативной памяти раннера
           emulator-options: "-no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none"
-          script: ./gradlew test --info
+          script: |
+            ADB=/usr/local/lib/android/sdk/platform-tools/adb
+            EMU=emulator-5554
+            TIMEOUT=300
+
+            echo "Restarting adb..."
+            $ADB kill-server || true
+            $ADB start-server
+
+            echo "Waiting for $EMU to appear as 'device'..."
+            elapsed=0
+            until $ADB devices | grep -w "$EMU" | grep -q device; do
+              sleep 5
+              elapsed=$((elapsed+5))
+              if [ $elapsed -gt $TIMEOUT ]; then
+                echo "Emulator not online after ${TIMEOUT}s"
+                exit 1
+              fi
+            done
+
+            echo "Waiting for boot completion..."
+            elapsed=0
+            until [ "$($ADB -s $EMU shell getprop sys.boot_completed | tr -d '\r')" = "1" ]; do
+              sleep 5
+              elapsed=$((elapsed+5))
+              if [ $elapsed -gt $TIMEOUT ]; then
+                echo "Boot not completed after ${TIMEOUT}s"
+                exit 1
+              fi
+            done
+
+            echo "Emulator is ready."
+
+            ./gradlew test --info
+
+      # Сохранение логов и скриншота при падении
+      - name: Save device logs and screenshot
+        if: failure()
+        run: |
+          mkdir -p artifacts
+          ADB=/usr/local/lib/android/sdk/platform-tools/adb
+          EMU=emulator-5554
+
+          echo "Collecting logcat..."
+          $ADB -s $EMU logcat -d > artifacts/logcat.txt || true
+
+          echo "Collecting device screenshot..."
+          $ADB -s $EMU exec-out screencap -p > artifacts/screenshot.png || true
+
+      - name: Upload Android artifacts
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-artifacts
+          path: artifacts
