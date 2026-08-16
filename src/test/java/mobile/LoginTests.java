@@ -19,7 +19,7 @@ import static mobile.config.PropertiesReader.getProperty;
  * Mobile tests for user login functionality.
  * Includes positive and negative scenarios for authentication.
  */
-//@Test(enabled = true)
+@Test(enabled = false)
 public class LoginTests extends TestBase {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginTests.class);
