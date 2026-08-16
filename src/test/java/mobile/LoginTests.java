@@ -3,6 +3,7 @@ package mobile;
 import io.qameta.allure.Step;
 import mobile.model.User;
 import mobile.screens.ContactListScreen;
+import mobile.screens.ErrorScreen;
 import mobile.screens.LoginRegistrationScreen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,60 +91,60 @@ public class LoginTests extends TestBase {
                 "Plus button should be visible after login");
     }
 
-//    @Test(enabled = false, description = "Negative test: Empty password")
-//    @Step("Attempt login with empty password and verify error message")
-//    public void loginNegativeEmptyPasswordTest() {
-//        logger.info("Starting test: loginNegativeEmptyPasswordTest");
-//
-//        User user = new User(getProperty("base.properties", "login"), "");
-//
-//        loginRegistrationScreen.typeLoginRegistrationForm(user);
-//        loginRegistrationScreen.clickBtnLogin();
-//
-//        Assert.assertTrue(new ErrorScreen(driver)
-//                        .validateTextInError("Login or Password incorrect", 15),
-//                "Error message not displayed for empty password");
-//    }
-//
-//    @Test(enabled = false, description = "Negative test: Empty login field")
-//    @Step("Attempt login with empty login and verify error message")
-//    public void loginNegativeEmptyLoginTest() {
-//        logger.info("Starting test: loginNegativeEmptyLoginTest");
-//
-//        User user = new User("", getProperty("base.properties", "password"));
-//
-//        loginRegistrationScreen.typeLoginRegistrationForm(user);
-//        loginRegistrationScreen.clickBtnLogin();
-//
-//        Assert.assertTrue(new ErrorScreen(driver)
-//                        .validateTextInError("Login or Password incorrect", 15),
-//                "Error message not displayed for empty login");
-//    }
-//
-//    @Test(enabled = false, description = "Negative test: Empty fields")
-//    @Step("Attempt login with empty fields and verify error message")
-//    public void loginNegativeEmptyFieldsTest() {
-//        logger.info("Starting test: loginNegativeEmptyFieldsTest");
-//
-//        loginRegistrationScreen.clickBtnLogin();
-//
-//        Assert.assertTrue(new ErrorScreen(driver)
-//                        .validateTextInError("Login or Password incorrect", 15),
-//                "Error message not displayed for empty fields");
-//    }
-//
-//    @Test(enabled = false, description = "Negative test: Wrong email with space")
-//    @Step("Attempt login with email containing space and verify error message")
-//    public void loginNegativeWrongEmailWithSpaceTest() {
-//        logger.info("Starting test: loginNegativeWrongEmailWithSpaceTest");
-//
-//        User user = new User(" ", getProperty("base.properties", "password"));
-//
-//        loginRegistrationScreen.typeLoginRegistrationForm(user);
-//        loginRegistrationScreen.clickBtnLogin();
-//
-//        Assert.assertTrue(new ErrorScreen(driver)
-//                        .validateTextInError("Login or Password incorrect", 15),
-//                "Error message not displayed for invalid email format");
-//    }
+    @Test(enabled = true, description = "Negative test: Empty password")
+    @Step("Attempt login with empty password and verify error message")
+    public void loginNegativeEmptyPasswordTest() {
+        logger.info("Starting test: loginNegativeEmptyPasswordTest");
+
+        User user = new User(getProperty("base.properties", "login"), "");
+
+        loginRegistrationScreen.typeLoginRegistrationForm(user);
+        loginRegistrationScreen.clickBtnLogin();
+
+        Assert.assertTrue(new ErrorScreen(driver)
+                        .validateTextInError("Login or Password incorrect", 15),
+                "Error message not displayed for empty password");
+    }
+
+    @Test(enabled = true, description = "Negative test: Empty login field")
+    @Step("Attempt login with empty login and verify error message")
+    public void loginNegativeEmptyLoginTest() {
+        logger.info("Starting test: loginNegativeEmptyLoginTest");
+
+        User user = new User("", getProperty("base.properties", "password"));
+
+        loginRegistrationScreen.typeLoginRegistrationForm(user);
+        loginRegistrationScreen.clickBtnLogin();
+
+        Assert.assertTrue(new ErrorScreen(driver)
+                        .validateTextInError("Login or Password incorrect", 15),
+                "Error message not displayed for empty login");
+    }
+
+    @Test(enabled = true, description = "Negative test: Empty fields")
+    @Step("Attempt login with empty fields and verify error message")
+    public void loginNegativeEmptyFieldsTest() {
+        logger.info("Starting test: loginNegativeEmptyFieldsTest");
+
+        loginRegistrationScreen.clickBtnLogin();
+
+        Assert.assertTrue(new ErrorScreen(driver)
+                        .validateTextInError("Login or Password incorrect", 15),
+                "Error message not displayed for empty fields");
+    }
+
+    @Test(enabled = true, description = "Negative test: Wrong email with space")
+    @Step("Attempt login with email containing space and verify error message")
+    public void loginNegativeWrongEmailWithSpaceTest() {
+        logger.info("Starting test: loginNegativeWrongEmailWithSpaceTest");
+
+        User user = new User(" ", getProperty("base.properties", "password"));
+
+        loginRegistrationScreen.typeLoginRegistrationForm(user);
+        loginRegistrationScreen.clickBtnLogin();
+
+        Assert.assertTrue(new ErrorScreen(driver)
+                        .validateTextInError("Login or Password incorrect", 15),
+                "Error message not displayed for invalid email format");
+    }
 }

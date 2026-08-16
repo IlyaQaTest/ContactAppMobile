@@ -49,6 +49,9 @@ jobs:
           sleep 5
           cat appium.log
 
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
       - name: Run Android emulator and tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
