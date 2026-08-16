@@ -1,0 +1,56 @@
+name: Android Appium Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Appium
+        run: |
+          npm install -g appium
+          appium -v
+
+      - name: Install UiAutomator2 driver
+        run: |
+          appium driver install uiautomator2
+
+      - name: Start Appium server
+        run: |
+          nohup appium --log-level info &
+
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Create and start emulator
+        run: |
+          sdkmanager "system-images;android-30;google_apis;x86_64"
+          echo "no" | avdmanager create avd -n test -k "system-images;android-30;google_apis;x86_64"
+          nohup emulator -avd test -no-window -no-audio &
+
+      - name: Wait for emulator
+        run: |
+          adb wait-for-device
+          adb shell input keyevent 82
+
+      - name: Run tests
+        run: ./gradlew test --info
